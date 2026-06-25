@@ -14,11 +14,14 @@ import {
   coupons as catalogCoupons,
   banners as catalogBanners,
   store as catalogStore,
+  shops as catalogShops,
+  getProductsByShop as catalogProductsByShop,
   type Product,
   type Category,
   type Review,
   type Coupon,
   type Banner,
+  type Shop,
 } from "@/lib/catalog";
 import { isFlashActive, effectivePrice } from "@/lib/utils";
 import type { SearchFilters } from "@/lib/catalog";
@@ -30,19 +33,37 @@ const hasDb = () => Boolean(process.env.MONGODB_URI);
 /* ------------------------------------------------------------------ */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// Self-heal known-dead remote image URLs (e.g. Unsplash photos that were
+// removed) without requiring a DB migration. Add entries as needed.
+const DEAD_IMAGE_REPLACEMENTS: Record<string, string> = {
+  "photo-1584100936595-c0654b55a2e6": "photo-1522771739844-6a9f6d5f14af", // woven cotton throw
+  "photo-1602874801006-e26f4d6c2c0e": "photo-1603006905003-be475563bc59", // scented soy candle
+};
+function healImage(url: string): string {
+  if (typeof url !== "string") return url;
+  for (const [dead, repl] of Object.entries(DEAD_IMAGE_REPLACEMENTS)) {
+    if (url.includes(dead)) return url.replace(dead, repl);
+  }
+  return url;
+}
+
 function mapProduct(d: any): Product {
   return {
     id: String(d._id),
     slug: d.slug,
     name: d.name,
     category: d.category, // stored as category slug
+    shop: d.shop || undefined,
     brand: d.brand,
     description: d.description ?? "",
     price: d.price,
     listPrice: d.listPrice,
-    images: d.images ?? [],
+    images: (d.images ?? []).map(healImage),
     sizes: d.sizes ?? [],
     colors: d.colors ?? [],
+    variantLabel: d.variantLabel || undefined,
+    variants: (d.variants ?? []).map((v: any) => ({ label: v.label, price: typeof v.price === "number" ? v.price : undefined })),
     countInStock: d.countInStock ?? 0,
     numSales: d.numSales ?? 0,
     avgRating: d.avgRating ?? 0,
@@ -243,6 +264,8 @@ async function getModelsSafe() {
 }
 
 export type StoreSettings = {
+  whatsapp?: string;
+  instagram?: string;
   storeName: string;
   supportPhone: string;
   supportEmail: string;
@@ -255,6 +278,8 @@ export async function getSettings(): Promise<StoreSettings> {
     supportPhone: catalogStore.supportPhone,
     supportEmail: catalogStore.supportEmail,
     address: catalogStore.address,
+    whatsapp: undefined,
+    instagram: undefined,
   };
   if (!process.env.MONGODB_URI) return fallback;
   try {
@@ -267,8 +292,63 @@ export async function getSettings(): Promise<StoreSettings> {
       supportPhone: doc.supportPhone || fallback.supportPhone,
       supportEmail: doc.supportEmail || fallback.supportEmail,
       address: doc.address || fallback.address,
+      whatsapp: doc.whatsapp || fallback.whatsapp,
+      instagram: doc.instagram || fallback.instagram,
     };
   } catch {
     return fallback;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Shops (multivendor)                                                 */
+/* ------------------------------------------------------------------ */
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapShop(d: any): Shop {
+  return {
+    slug: d.slug, name: d.name, blurb: d.blurb ?? "", logo: d.logo ?? "",
+    headerColor: d.headerColor || "#c96442",
+    bagFee: typeof d.bagFee === "number" ? d.bagFee : 0,
+    discountPct: typeof d.discountPct === "number" ? d.discountPct : 0,
+    deliveryFee: typeof d.deliveryFee === "number" ? d.deliveryFee : undefined,
+  };
+}
+
+export async function getShops(): Promise<Shop[]> {
+  if (process.env.MONGODB_URI) {
+    try {
+      const { Shop } = await getModelsSafe();
+      const docs = await Shop.find({ isActive: true, isSuspended: { $ne: true } }).sort({ order: 1, name: 1 }).lean();
+      if (docs.length) return (docs as any[]).map(mapShop);
+    } catch { /* fall back */ }
+  }
+  return catalogShops;
+}
+
+export async function getShopBySlug(slug: string): Promise<Shop | null> {
+  if (process.env.MONGODB_URI) {
+    try {
+      const { Shop } = await getModelsSafe();
+      const doc = await Shop.findOne({ slug }).lean();
+      if (doc) return mapShop(doc);
+    } catch { /* fall back */ }
+  }
+  return catalogShops.find((s) => s.slug === slug) ?? null;
+}
+
+export async function getShopsWithCounts(): Promise<(Shop & { count: number })[]> {
+  const [list, products] = await Promise.all([getShops(), getProducts()]);
+  return list.map((sh) => ({ ...sh, count: products.filter((p) => p.shop === sh.slug).length }));
+}
+
+export async function getProductsByShop(slug: string): Promise<Product[]> {
+  if (process.env.MONGODB_URI) {
+    try {
+      const { Product } = await getModelsSafe();
+      const docs = await Product.find({ shop: slug, isPublished: true }).sort({ createdAt: -1 }).lean();
+      return (docs as any[]).map(mapProduct);
+    } catch { /* fall back */ }
+  }
+  return catalogProductsByShop(slug);
 }

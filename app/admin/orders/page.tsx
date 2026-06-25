@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Smartphone, CheckCircle2 } from "lucide-react";
-import { formatKsh, formatDate, cn } from "@/lib/utils";
+import { formatKsh, formatDateTime, cn } from "@/lib/utils";
 import { ORDER_STATUSES, canTransition, type OrderStatus } from "@/lib/constants";
 import { useStore } from "@/store/store-context";
 
@@ -94,7 +94,7 @@ export default function AdminOrdersPage() {
                   <tr key={o._id} className="border-b border-border last:border-0 align-top">
                     <td className="px-4 py-3 font-medium"><Link href={`/admin/orders/${o._id}`} className="text-foreground hover:text-primary hover:underline">#{o._id.slice(-6).toUpperCase()}</Link></td>
                     <td className="px-4 py-3 text-muted-foreground">{o.user?.name ?? "—"}<br /><span className="text-xs">{o.user?.email}</span></td>
-                    <td className="px-4 py-3 text-muted-foreground">{formatDate(o.createdAt)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDateTime(o.createdAt)}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{formatKsh(o.total)}</td>
                     <td className="px-4 py-3">
                       <span className={o.isPaid ? "text-primary" : "text-muted-foreground"}>{o.isPaid ? "Paid" : "Unpaid"}</span>

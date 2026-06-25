@@ -70,7 +70,7 @@ export default function CartPage() {
                   <span className="whitespace-nowrap font-medium text-foreground">{formatKsh(l.lineTotal)}</span>
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {[l.size, l.color].filter(Boolean).join(" · ") || "—"} · {formatKsh(l.unitPrice)} each
+                  {[l.variant, l.size, l.color].filter(Boolean).join(" · ") || "—"} · {formatKsh(l.unitPrice)} each
                 </p>
                 <div className="mt-auto flex items-center justify-between pt-3">
                   <div className="flex items-center rounded-md border border-border">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Package, ChevronRight } from "lucide-react";
-import { formatKsh, formatDate, cn } from "@/lib/utils";
+import { formatKsh, formatDateTime, cn } from "@/lib/utils";
 
 type Order = {
   _id: string; total: number; status: string; paymentMethod: string;
@@ -47,7 +47,7 @@ export default function OrdersPage() {
                   <StatusPill status={o.status} />
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {formatDate(o.createdAt)} · {o.items.length} item{o.items.length === 1 ? "" : "s"} · {o.paymentMethod}
+                  {formatDateTime(o.createdAt)} · {o.items.length} item{o.items.length === 1 ? "" : "s"} · {o.paymentMethod}
                 </p>
               </div>
               <span className="font-medium text-foreground">{formatKsh(o.total)}</span>

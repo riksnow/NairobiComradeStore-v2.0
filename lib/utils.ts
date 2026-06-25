@@ -84,6 +84,16 @@ export function formatDate(
   return new Intl.DateTimeFormat("en-KE", opts).format(d);
 }
 
+/** Date + time, e.g. "17 Jun 2026, 14:30". */
+export function formatDateTime(date: Date | string | number): string {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-KE", {
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(d);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Serialization — Mongoose lean doc → plain JSON-safe object         */
 /* ------------------------------------------------------------------ */

@@ -27,6 +27,8 @@ export type CartLine = {
   productId: string;
   size?: string;
   color?: string;
+  variant?: string;
+  unitPriceOverride?: number;
   qty: number;
 };
 
@@ -35,6 +37,7 @@ export type ResolvedLine = {
   product: Product;
   size?: string;
   color?: string;
+  variant?: string;
   qty: number;
   unitPrice: number;
   lineTotal: number;
@@ -51,6 +54,7 @@ export type Order = {
     qty: number;
     size?: string;
     color?: string;
+    variant?: string;
   }[];
   shippingAddress: {
     fullName: string;
@@ -70,7 +74,7 @@ export type Order = {
   cancellationReason?: string;
 };
 
-const lineKey = (l: CartLine) => `${l.productId}|${l.size ?? ""}|${l.color ?? ""}`;
+const lineKey = (l: CartLine) => `${l.productId}|${l.size ?? ""}|${l.color ?? ""}|${l.variant ?? ""}`;
 
 /* ------------------------------------------------------------------ */
 /*  State + reducer                                                    */
@@ -161,7 +165,7 @@ type StoreValue = {
   total: number;
   addToCart: (
     product: Product,
-    opts?: { qty?: number; size?: string; color?: string; silent?: boolean }
+    opts?: { qty?: number; size?: string; color?: string; variant?: string; variantPrice?: number; silent?: boolean }
   ) => void;
   setQty: (key: string, qty: number) => void;
   removeLine: (key: string) => void;
@@ -243,7 +247,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (product, opts) => {
       dispatch({
         type: "ADD",
-        line: { productId: product.id, size: opts?.size, color: opts?.color, qty: opts?.qty ?? 1 },
+        line: { productId: product.id, size: opts?.size, color: opts?.color, variant: opts?.variant, unitPriceOverride: opts?.variantPrice, qty: opts?.qty ?? 1 },
         product,
       });
       if (!opts?.silent) {
@@ -278,12 +282,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .map((l) => {
           const product = resolve(l.productId);
           if (!product) return null;
-          const unitPrice = priceOf(product);
+          const unitPrice = l.unitPriceOverride ?? priceOf(product);
           return {
             key: lineKey(l),
             product,
             size: l.size,
             color: l.color,
+            variant: l.variant,
             qty: l.qty,
             unitPrice,
             lineTotal: unitPrice * l.qty,

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { useStore } from "@/store/store-context";
 
-type Settings = { storeName?: string; supportPhone?: string; supportEmail?: string; address?: string };
+type Settings = { storeName?: string; supportPhone?: string; supportEmail?: string; address?: string; whatsapp?: string; instagram?: string };
 
 export default function AdminSettingsPage() {
   const { notify } = useStore();
@@ -34,6 +34,8 @@ export default function AdminSettingsPage() {
         <Field label="Support phone"><Input value={s.supportPhone ?? ""} onChange={(e) => setS((x) => ({ ...x, supportPhone: e.target.value }))} /></Field>
         <Field label="Support email"><Input value={s.supportEmail ?? ""} onChange={(e) => setS((x) => ({ ...x, supportEmail: e.target.value }))} /></Field>
         <Field label="Address"><Input value={s.address ?? ""} onChange={(e) => setS((x) => ({ ...x, address: e.target.value }))} /></Field>
+        <Field label="WhatsApp (number or wa.me link)"><Input value={s.whatsapp ?? ""} onChange={(e) => setS((x) => ({ ...x, whatsapp: e.target.value }))} placeholder="2547XXXXXXXX" /></Field>
+        <Field label="Instagram (handle or URL)"><Input value={s.instagram ?? ""} onChange={(e) => setS((x) => ({ ...x, instagram: e.target.value }))} placeholder="nairobicomradestore" /></Field>
         <Button type="submit">{saved ? <><Check className="size-4" /> Saved</> : "Save settings"}</Button>
       </form>
     </div>

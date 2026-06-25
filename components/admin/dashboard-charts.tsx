@@ -29,14 +29,14 @@ function RevenueTooltip({ active, payload, label }: any) {
   );
 }
 
-export function DashboardCharts({ sales, byStatus }: { sales: Sales[]; byStatus: Record<string, number> }) {
+export function DashboardCharts({ sales, byStatus, salesTitle = "Sales" }: { sales: Sales[]; byStatus: Record<string, number>; salesTitle?: string }) {
   const pieData = STATUS_ORDER.map((s) => ({ name: s, value: byStatus[s] ?? 0 })).filter((d) => d.value > 0);
   const totalOrders = pieData.reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
       <section className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-serif text-lg text-foreground">Sales — last 14 days</h2>
+        <h2 className="font-serif text-lg text-foreground">{salesTitle}</h2>
         <p className="mt-0.5 text-sm text-muted-foreground">Daily revenue across non-cancelled orders.</p>
         <div className="mt-5 h-[260px] w-full">
           <ResponsiveContainer width="100%" height="100%">

@@ -3,6 +3,7 @@ import { store } from "@/lib/catalog";
 import { getSettings, getCategories } from "@/lib/data";
 import { Logo } from "@/components/shared/logo";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
+import { SocialLinks } from "@/components/shared/social-links";
 
 export async function Footer() {
   const [settings, categories] = await Promise.all([getSettings(), getCategories()]);
@@ -26,6 +27,8 @@ export async function Footer() {
             <p className="mt-4 text-xs text-muted-foreground">{settings.address}</p>
             <p className="text-xs text-muted-foreground">{settings.supportPhone}</p>
             <p className="text-xs text-muted-foreground">{settings.supportEmail}</p>
+
+            <SocialLinks whatsapp={settings.whatsapp} instagram={settings.instagram} phone={settings.supportPhone} className="mt-5" />
           </div>
 
           <FooterCol title="Shop">

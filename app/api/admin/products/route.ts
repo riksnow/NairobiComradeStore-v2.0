@@ -22,8 +22,11 @@ export async function POST(request: Request) {
   const slug = (b.slug ? slugify(b.slug) : slugify(b.name)) + "-" + Math.random().toString(36).slice(2, 6);
   const doc = await Product.create({
     name: b.name, slug, description: b.description ?? "", price: b.price, listPrice: b.listPrice,
-    images: b.images ?? [], category: b.category, brand: b.brand, tags: b.tags ?? [],
-    sizes: b.sizes ?? [], colors: b.colors ?? [], countInStock: b.countInStock ?? 0,
+    images: b.images ?? [], category: b.category, shop: b.shop || undefined, brand: b.brand, tags: b.tags ?? [],
+    sizes: b.sizes ?? [], colors: b.colors ?? [],
+    variantLabel: b.variantLabel || undefined,
+    variants: Array.isArray(b.variants) ? b.variants : [],
+    countInStock: b.countInStock ?? 0,
     isPublished: b.isPublished ?? true, isFeatured: b.isFeatured ?? false,
     flashSale: b.flashSale ?? false, flashSalePrice: b.flashSalePrice,
     flashSaleEnd: b.flashSaleEnd ? new Date(b.flashSaleEnd) : undefined,

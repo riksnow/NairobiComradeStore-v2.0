@@ -12,13 +12,15 @@ import { Dialog } from "@/components/ui/dialog";
 import { Accordion } from "@/components/ui/accordion";
 import { SizeGuideContent } from "@/components/product/size-guide-content";
 import { ImageWithFallback } from "@/components/primitives/image-with-fallback";
-import { cn } from "@/lib/utils";
+import { cn, effectivePrice, formatKsh } from "@/lib/utils";
+import { SIZED_CATEGORIES } from "@/lib/constants";
 
 export function ProductDetailClient({ product }: { product: Product }) {
   const { addToCart, toggleWishlist, isWished } = useStore();
   const [img, setImg] = useState(0);
   const [size, setSize] = useState<string | undefined>();
   const [color, setColor] = useState<string | undefined>();
+  const [variant, setVariant] = useState<string | undefined>();
   const [qty, setQty] = useState(1);
   const [err, setErr] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
@@ -27,12 +29,19 @@ export function ProductDetailClient({ product }: { product: Product }) {
   const out = stockState(product.countInStock) === "out";
   const wished = isWished(product.id);
 
+  const hasVariants = !!product.variants?.length;
+  const selectedVariant = product.variants?.find((v) => v.label === variant);
+  const variantPrice = selectedVariant?.price;
+  const unitPrice = variantPrice ?? effectivePrice(product);
+  const showSizeGuide = SIZED_CATEGORIES.includes(product.category) && product.sizes.length > 0;
+
   const handleAdd = () => {
     if (out) return;
     if (product.sizes.length && !size) return setErr("Please select a size.");
     if (product.colors.length && !color) return setErr("Please select a colour.");
+    if (hasVariants && !variant) return setErr(`Please select a ${product.variantLabel?.toLowerCase() ?? "option"}.`);
     setErr(null);
-    addToCart(product, { qty, size, color, silent: true });
+    addToCart(product, { qty, size, color, variant, variantPrice, silent: true });
     setAdded(true);
     setTimeout(() => setAdded(false), 1600);
   };
@@ -46,6 +55,8 @@ export function ProductDetailClient({ product }: { product: Product }) {
           alt={product.name}
           wrapperClassName="aspect-square rounded-2xl border border-border"
           className="h-full w-full object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
+          quality={92}
           priority
         />
         {product.images.length > 1 && (
@@ -65,6 +76,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
                   alt={`${product.name} ${i + 1}`}
                   wrapperClassName="h-full w-full"
                   className="h-full w-full object-cover"
+                  sizes="96px"
                 />
               </button>
             ))}
@@ -93,7 +105,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
         </div>
 
         <div className="mt-4">
-          <Price product={product} size="lg" />
+          <Price product={product} size="lg" overridePrice={hasVariants && variantPrice !== undefined ? unitPrice : undefined} />
         </div>
 
         <div className="mt-3">
@@ -105,12 +117,14 @@ export function ProductDetailClient({ product }: { product: Product }) {
           <div className="mt-6">
             <div className="mb-2 flex items-center justify-between">
               <span className="eyebrow text-[0.6rem] text-muted-foreground">Size</span>
-              <button
-                onClick={() => setGuideOpen(true)}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                <Ruler className="size-3.5" /> Size guide
-              </button>
+              {showSizeGuide && (
+                <button
+                  onClick={() => setGuideOpen(true)}
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  <Ruler className="size-3.5" /> Size guide
+                </button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {product.sizes.map((s) => (
@@ -127,6 +141,33 @@ export function ProductDetailClient({ product }: { product: Product }) {
                   {s}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Variants (e.g. capacity) — dynamic pricing */}
+        {hasVariants && (
+          <div className="mt-5">
+            <span className="eyebrow mb-2 block text-[0.6rem] text-muted-foreground">{product.variantLabel ?? "Option"}</span>
+            <div className="flex flex-wrap gap-2">
+              {product.variants!.map((v) => {
+                const active = variant === v.label;
+                return (
+                  <button
+                    key={v.label}
+                    onClick={() => setVariant(v.label)}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm transition-colors",
+                      active ? "border-primary bg-primary/10 text-foreground" : "border-border text-foreground/80 hover:border-foreground/30"
+                    )}
+                  >
+                    <span>{v.label}</span>
+                    {typeof v.price === "number" && (
+                      <span className={cn("ml-2 text-xs", active ? "text-primary" : "text-muted-foreground")}>{formatKsh(v.price)}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -232,7 +273,7 @@ export function ProductDetailClient({ product }: { product: Product }) {
         </div>
       </div>
 
-      {product.sizes.length > 0 && (
+      {showSizeGuide && (
         <Dialog open={guideOpen} onClose={() => setGuideOpen(false)} label="Size guide">
           <SizeGuideContent category={product.category} />
         </Dialog>

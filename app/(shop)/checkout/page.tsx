@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -30,6 +30,28 @@ export default function CheckoutPage() {
   const [phase, setPhase] = useState<Phase>("form");
   const [orderId, setOrderId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [shops, setShops] = useState<{ slug: string; bagFee: number; discountPct: number }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/shops").then((r) => (r.ok ? r.json() : null)).then((d) => { if (Array.isArray(d)) setShops(d); }).catch(() => {});
+  }, []);
+
+  // Shop-level charges: per-shop discounts on their items + one bag fee per distinct shop.
+  const { shopDiscount, bagFee } = useMemo(() => {
+    const map = new Map(shops.map((s) => [s.slug, s]));
+    const present = new Set<string>();
+    let disc = 0;
+    for (const l of lines) {
+      const sh = l.product.shop ? map.get(l.product.shop) : undefined;
+      if (sh?.discountPct) disc += Math.round(l.unitPrice * (sh.discountPct / 100)) * l.qty;
+      if (l.product.shop) present.add(l.product.shop);
+    }
+    let bag = 0;
+    for (const slug of present) bag += map.get(slug)?.bagFee ?? 0;
+    return { shopDiscount: disc, bagFee: bag };
+  }, [shops, lines]);
+
+  const grandTotal = Math.max(0, total - shopDiscount + bagFee);
 
   // Load saved addresses for signed-in shoppers.
   useEffect(() => {
@@ -117,7 +139,7 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: lines.map((l) => ({ slug: l.product.slug, qty: l.qty, size: l.size, color: l.color })),
+          items: lines.map((l) => ({ slug: l.product.slug, qty: l.qty, size: l.size, color: l.color, variant: l.variant })),
           shippingAddress: activeAddress,
           paymentMethod: method,
           couponCode: coupon?.code,
@@ -147,7 +169,7 @@ export default function CheckoutPage() {
 
       // Demo fallback (no database configured).
       const order = createOrder({
-        items: lines.map((l) => ({ productId: l.product.id, name: l.product.name, image: l.product.images[0], price: l.unitPrice, qty: l.qty, size: l.size, color: l.color })),
+        items: lines.map((l) => ({ productId: l.product.id, name: l.product.name, image: l.product.images[0], price: l.unitPrice, qty: l.qty, size: l.size, color: l.color, variant: l.variant })),
         shippingAddress: activeAddress, paymentMethod: method, subtotal, deliveryFee, discount, couponCode: coupon?.code, total,
       });
       finish(order.id);
@@ -177,7 +199,7 @@ export default function CheckoutPage() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {phase === "awaiting"
-            ? `Enter your M-Pesa PIN to pay ${formatKsh(total)}. This page will continue automatically once payment is received.`
+            ? `Enter your M-Pesa PIN to pay ${formatKsh(grandTotal)}. This page will continue automatically once payment is received.`
             : notice}
         </p>
         {phase === "failed" && (
@@ -283,12 +305,14 @@ export default function CheckoutPage() {
           <dl className="mt-4 space-y-2 border-t border-border pt-4 text-sm">
             <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd className="text-foreground">{formatKsh(subtotal)}</dd></div>
             {discount > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Discount {coupon ? `(${coupon.code})` : ""}</dt><dd className="text-primary">− {formatKsh(discount)}</dd></div>}
+            {shopDiscount > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Shop discounts</dt><dd className="text-primary">− {formatKsh(shopDiscount)}</dd></div>}
             <div className="flex justify-between"><dt className="text-muted-foreground">Delivery</dt><dd className="text-foreground">{deliveryFee === 0 ? "Free" : formatKsh(deliveryFee)}</dd></div>
-            <div className="flex justify-between border-t border-border pt-3 text-base font-medium text-foreground"><dt>Total</dt><dd>{formatKsh(total)}</dd></div>
+            {bagFee > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Shop bag fees</dt><dd className="text-foreground">{formatKsh(bagFee)}</dd></div>}
+            <div className="flex justify-between border-t border-border pt-3 text-base font-medium text-foreground"><dt>Total</dt><dd>{formatKsh(grandTotal)}</dd></div>
           </dl>
 
           <Button onClick={placeOrder} disabled={placing} className="mt-5 w-full">
-            <Lock className="size-4" /> {placing ? "Placing…" : `Place order · ${formatKsh(total)}`}
+            <Lock className="size-4" /> {placing ? "Placing…" : `Place order · ${formatKsh(grandTotal)}`}
           </Button>
           <Link href="/cart" className="mt-3 block text-center text-sm text-muted-foreground hover:text-foreground">Back to cart</Link>
         </aside>

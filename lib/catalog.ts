@@ -31,6 +31,7 @@ export type Product = {
   slug: string;
   name: string;
   category: string; // category slug
+  shop?: string; // shop slug
   brand?: string;
   description: string;
   price: number; // Ksh
@@ -38,6 +39,8 @@ export type Product = {
   images: string[];
   sizes: string[];
   colors: string[];
+  variantLabel?: string;
+  variants?: { label: string; price?: number }[];
   countInStock: number;
   numSales: number;
   avgRating: number;
@@ -195,7 +198,7 @@ export const products: Product[] = [
   // ── Home & Living ─────────────────────────────────────────
   { id: "h1", slug: "scented-soy-candle", name: "Scented Soy Candle", category: "home-living", brand: "Mela",
     description: "Hand-poured soy candle with notes of cedar and vanilla. 45-hour burn.",
-    price: 1299, images: [u("1602874801006-e26f4d6c2c0e"), u("1603006905003-be475563bc59")],
+    price: 1299, images: [u("1603006905003-be475563bc59")],
     sizes: ["Small", "Large"], colors: ["Natural"], countInStock: 60, numSales: 130,
     avgRating: 4.5, numReviews: 24, isFeatured: false, flashSale: false, tags: [], added: 11 },
   { id: "h2", slug: "ceramic-mug-set", name: "Ceramic Mug Set of 4", category: "home-living", brand: "Clay & Co",
@@ -205,7 +208,7 @@ export const products: Product[] = [
     avgRating: 4.7, numReviews: 18, isFeatured: true, flashSale: false, tags: [], added: 17 },
   { id: "h3", slug: "cotton-throw-blanket", name: "Woven Cotton Throw", category: "home-living", brand: "Maua",
     description: "Chunky woven cotton throw with tasselled edges for the sofa or bed.",
-    price: 2799, listPrice: 3500, images: [u("1584100936595-c0654b55a2e6"), u("1522771739844-6a9f6d5f14af")],
+    price: 2799, listPrice: 3500, images: [u("1522771739844-6a9f6d5f14af")],
     sizes: [], colors: ["Cream", "Mustard", "Slate"], countInStock: 15, numSales: 70,
     avgRating: 4.6, numReviews: 13, isFeatured: false, flashSale: true, flashSalePrice: 2199, flashSaleEnd: soon, tags: ["sale"], added: 23 },
   { id: "h4", slug: "rattan-pendant-lamp", name: "Rattan Pendant Lamp", category: "home-living", brand: "Maua",
@@ -376,3 +379,58 @@ export function suggest(q: string, n = 6): Product[] {
 }
 
 export const priceOf = effective;
+
+
+/* ------------------------------------------------------------------ */
+/*  Shops (multivendor)                                                */
+/* ------------------------------------------------------------------ */
+
+export type Shop = {
+  slug: string;
+  name: string;
+  blurb: string;
+  logo: string;
+  headerColor: string; // unique colour for the shop header
+  bagFee: number;
+  discountPct: number;
+  deliveryFee?: number;
+};
+
+export const shops: Shop[] = [
+  { slug: "k-thrift", name: "K-Thrift", blurb: "Curated thrift & vintage fashion finds.", headerColor: "#7c3a52", bagFee: 30, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=400&q=80" },
+  { slug: "dr-martens", name: "Dr. Martens", blurb: "Iconic boots, loafers & leather goods.", headerColor: "#2f3437", bagFee: 0, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=400&q=80" },
+  { slug: "glass-world", name: "Glass World", blurb: "Customised glasses, frames & eyewear.", headerColor: "#3b7d8c", bagFee: 50, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1574258495973-f010dfbb5371?auto=format&fit=crop&w=400&q=80" },
+  { slug: "volthub", name: "VoltHub Electronics", blurb: "Power banks, audio & everyday gadgets.", headerColor: "#1f6f63", bagFee: 40, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&w=400&q=80" },
+  { slug: "casa-comrade", name: "Casa Comrade", blurb: "Home, kitchen & living essentials.", headerColor: "#8a5a2b", bagFee: 35, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=400&q=80" },
+  { slug: "glow-bar", name: "Glow Bar", blurb: "Beauty, skincare & self-care.", headerColor: "#b15a8f", bagFee: 25, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=400&q=80" },
+  { slug: "peak-sports", name: "Peak Sports", blurb: "Fitness gear, sportswear & the outdoors.", headerColor: "#2d5fa3", bagFee: 30, discountPct: 0,
+    logo: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=400&q=80" },
+];
+
+export function getShop(slug: string): Shop | undefined {
+  return shops.find((sh) => sh.slug === slug);
+}
+
+const categoryShop: Record<string, string> = {
+  fashion: "k-thrift",
+  shoes: "dr-martens",
+  electronics: "volthub",
+  "home-living": "casa-comrade",
+  beauty: "glow-bar",
+  sports: "peak-sports",
+};
+
+// Link every catalog product to a shop (fallback when there's no database).
+products.forEach((pr) => {
+  if (!pr.shop) pr.shop = categoryShop[pr.category] ?? "k-thrift";
+});
+
+export function getProductsByShop(slug: string): Product[] {
+  return products.filter((pr) => pr.shop === slug);
+}

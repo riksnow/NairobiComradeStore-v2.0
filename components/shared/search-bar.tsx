@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@/lib/track";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -64,6 +65,7 @@ export function SearchBar({ onNavigate, autoFocus }: { onNavigate?: () => void; 
     const t = term.trim();
     if (!t) return;
     persistRecent(t);
+    track({ type: "search", query: t });
     setOpen(false);
     onNavigate?.();
     router.push(`/search?q=${encodeURIComponent(t)}`);
@@ -120,7 +122,7 @@ export function SearchBar({ onNavigate, autoFocus }: { onNavigate?: () => void; 
                       className="flex items-center gap-3 px-4 py-2 hover:bg-accent"
                     >
                       <div className="size-11 shrink-0 overflow-hidden rounded-md border border-border">
-                        <ImageWithFallback src={p.images[0]} alt={p.name} wrapperClassName="h-full w-full" />
+                        <ImageWithFallback src={p.images[0]} alt={p.name} wrapperClassName="h-full w-full" sizes="64px" />
                       </div>
                       <span className="min-w-0 flex-1 truncate text-sm text-foreground">{p.name}</span>
                       <span className="shrink-0 text-sm text-foreground">{formatKsh(effectivePrice(p))}</span>
@@ -187,7 +189,7 @@ export function SearchBar({ onNavigate, autoFocus }: { onNavigate?: () => void; 
                     className="flex items-center gap-3 rounded-md px-2 py-2 hover:bg-accent"
                   >
                     <div className="size-9 shrink-0 overflow-hidden rounded-md border border-border">
-                      <ImageWithFallback src={p.images[0]} alt={p.name} wrapperClassName="h-full w-full" />
+                      <ImageWithFallback src={p.images[0]} alt={p.name} wrapperClassName="h-full w-full" sizes="64px" />
                     </div>
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">{p.name}</span>
                   </Link>

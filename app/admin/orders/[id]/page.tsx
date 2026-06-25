@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Package, CheckCircle2, XCircle, Smartphone } from "lucide-react";
-import { formatKsh, formatDate, cn } from "@/lib/utils";
+import { formatKsh, formatDateTime, cn } from "@/lib/utils";
 import { ORDER_STATUSES, canTransition, type OrderStatus } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,10 @@ import { useStore } from "@/store/store-context";
 import { ImageWithFallback } from "@/components/primitives/image-with-fallback";
 
 type Order = {
-  _id: string; total: number; subtotal: number; deliveryFee: number; discount: number;
+  _id: string; total: number; subtotal: number; deliveryFee: number; discount: number; bagFee?: number; shopDiscount?: number;
   status: OrderStatus; paymentMethod: string; isPaid: boolean; createdAt: string; couponCode?: string;
   cancellationReason?: string;
-  items: { name: string; qty: number; price: number; image: string; size?: string; color?: string }[];
+  items: { name: string; qty: number; price: number; image: string; size?: string; color?: string; variant?: string; shop?: string; shopName?: string }[];
   shippingAddress: { fullName: string; phone: string; street: string; area: string; city: string };
   statusHistory: { status: string; timestamp: string; note?: string }[];
   user?: { name?: string; email?: string } | null;
@@ -82,7 +82,7 @@ export default function AdminOrderDetailPage() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="font-serif text-2xl text-foreground md:text-3xl">Order #{order._id.slice(-6).toUpperCase()}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Placed {formatDate(order.createdAt)} · {order.paymentMethod}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Placed {formatDateTime(order.createdAt)} · {order.paymentMethod}</p>
         </div>
         <span className={cn("rounded-full px-2.5 py-0.5 text-xs", cancelled ? "bg-destructive/10 text-destructive" : order.status === "Delivered" ? "bg-primary/10 text-primary" : "bg-secondary text-foreground/70")}>{order.status}</span>
       </div>
@@ -92,10 +92,11 @@ export default function AdminOrderDetailPage() {
           <div className="divide-y divide-border rounded-2xl border border-border">
             {order.items.map((it, i) => (
               <div key={i} className="flex gap-3 p-4">
-                <ImageWithFallback src={it.image} alt={it.name} wrapperClassName="size-16 shrink-0 rounded-md border border-border" />
+                <ImageWithFallback src={it.image} alt={it.name} wrapperClassName="size-16 shrink-0 rounded-md border border-border" sizes="80px" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-foreground">{it.name}</p>
-                  <p className="text-xs text-muted-foreground">{[it.size, it.color].filter(Boolean).join(" · ")} · Qty {it.qty}</p>
+                  <p className="text-xs text-muted-foreground">{[it.variant, it.size, it.color].filter(Boolean).join(" · ")} · Qty {it.qty}</p>
+                {it.shopName && <p className="mt-0.5 text-[0.7rem] text-primary">Sold by {it.shopName}</p>}
                 </div>
                 <span className="text-sm text-foreground">{formatKsh(it.price * it.qty)}</span>
               </div>
@@ -110,7 +111,7 @@ export default function AdminOrderDetailPage() {
                   <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
                   <div>
                     <p className="text-foreground">{h.status}</p>
-                    <p className="text-xs text-muted-foreground">{formatDate(h.timestamp)}{h.note ? ` · ${h.note}` : ""}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(h.timestamp)}{h.note ? ` · ${h.note}` : ""}</p>
                   </div>
                 </li>
               ))}
@@ -122,6 +123,8 @@ export default function AdminOrderDetailPage() {
           <div className="rounded-2xl border border-border bg-card p-5 text-sm">
             <Row label="Subtotal" value={formatKsh(order.subtotal)} />
             {order.discount > 0 && <Row label={`Discount${order.couponCode ? ` (${order.couponCode})` : ""}`} value={`− ${formatKsh(order.discount)}`} />}
+            {order.shopDiscount ? <Row label="Shop discounts" value={`− ${formatKsh(order.shopDiscount)}`} /> : null}
+            {order.bagFee ? <Row label="Shop bag fees" value={formatKsh(order.bagFee)} /> : null}
             <Row label="Delivery" value={formatKsh(order.deliveryFee)} />
             <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium text-foreground"><span>Total</span><span>{formatKsh(order.total)}</span></div>
             <div className="mt-3 flex items-center justify-between">

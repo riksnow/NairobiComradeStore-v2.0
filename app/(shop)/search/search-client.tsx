@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { type SortKey, type Product, type Category } from "@/lib/catalog";
@@ -18,13 +17,34 @@ const SORTS: { key: SortKey; label: string }[] = [
 
 const RATINGS = [4, 3, 2];
 
+type Filters = {
+  q: string;
+  category: string;
+  min?: number;
+  max?: number;
+  minRating?: number;
+  flashOnly: boolean;
+  sort: SortKey;
+  page: number;
+};
+
+type Data = { products: Product[]; total: number; page: number; totalPages: number };
+
+function toQS(f: Filters): string {
+  const p = new URLSearchParams();
+  if (f.q) p.set("q", f.q);
+  if (f.category) p.set("category", f.category);
+  if (f.min != null) p.set("min", String(f.min));
+  if (f.max != null) p.set("max", String(f.max));
+  if (f.minRating != null) p.set("rating", String(f.minRating));
+  if (f.flashOnly) p.set("flash", "1");
+  if (f.sort && f.sort !== "newest") p.set("sort", f.sort);
+  if (f.page > 1) p.set("page", String(f.page));
+  return p.toString();
+}
+
 export function SearchClient({
-  products,
-  total,
-  page,
-  totalPages,
-  query,
-  cats,
+  products, total, page, totalPages, query, cats, initial,
 }: {
   products: Product[];
   total: number;
@@ -32,38 +52,48 @@ export function SearchClient({
   totalPages: number;
   query: string;
   cats: Category[];
+  initial: Omit<Filters, "q"> & { q: string };
 }) {
-  const router = useRouter();
-  const sp = useSearchParams();
+  const [filters, setFilters] = useState<Filters>({ ...initial, q: query });
+  const [data, setData] = useState<Data>({ products, total, page, totalPages });
+  const [loading, setLoading] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const reqId = useRef(0);
 
-  const category = sp.get("category") ?? "";
-  const min = sp.get("min") ? Number(sp.get("min")) : undefined;
-  const max = sp.get("max") ? Number(sp.get("max")) : undefined;
-  const minRating = sp.get("rating") ? Number(sp.get("rating")) : undefined;
-  const flashOnly = sp.get("flash") === "1";
-  const sort = (sp.get("sort") as SortKey) ?? "newest";
+  // Fetch results whenever filters change (after the initial server render).
+  const firstRun = useRef(true);
+  useEffect(() => {
+    if (firstRun.current) { firstRun.current = false; return; }
+    const id = ++reqId.current;
+    const qs = toQS(filters);
+    // Keep the URL shareable/back-friendly without triggering a full RSC reload.
+    window.history.replaceState(null, "", qs ? `/search?${qs}` : "/search");
+    setLoading(true);
+    fetch(`/api/products/search?${qs}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: Data | null) => {
+        if (id !== reqId.current) return; // ignore out-of-order responses
+        if (d) setData(d);
+        setLoading(false);
+      })
+      .catch(() => { if (id === reqId.current) setLoading(false); });
+  }, [filters]);
 
-  const setParam = (patch: Record<string, string | number | boolean | undefined>) => {
-    const next = new URLSearchParams(sp.toString());
-    Object.entries(patch).forEach(([k, v]) => {
-      if (v === undefined || v === "" || v === false) next.delete(k);
-      else next.set(k, String(v));
-    });
-    if (!("page" in patch)) next.delete("page");
-    router.push(`/search?${next.toString()}`);
-  };
+  const apply = (patch: Partial<Filters>) =>
+    setFilters((f) => ({ ...f, ...patch, ...( "page" in patch ? {} : { page: 1 }) }));
 
+  const clearAll = () => { setFiltersOpen(false); setFilters((f) => ({ q: f.q, category: "", flashOnly: false, sort: "newest", page: 1 })); };
+
+  const { category, min, max, minRating, flashOnly, sort } = filters;
   const activeCount = [category, min, max, minRating, flashOnly].filter(Boolean).length;
-  const clearAll = () => { setFiltersOpen(false); router.push(query ? `/search?q=${encodeURIComponent(query)}` : "/search"); };
 
   const panel = (
     <>
       <FilterGroup label="Category">
         <div className="space-y-1.5">
-          <Radio checked={!category} onChange={() => setParam({ category: undefined })} label="All categories" />
+          <Radio checked={!category} onChange={() => apply({ category: "" })} label="All categories" />
           {cats.map((c) => (
-            <Radio key={c.slug} checked={category === c.slug} onChange={() => setParam({ category: c.slug })} label={c.name} />
+            <Radio key={c.slug} checked={category === c.slug} onChange={() => apply({ category: c.slug })} label={c.name} />
           ))}
         </div>
       </FilterGroup>
@@ -72,13 +102,13 @@ export function SearchClient({
         <div className="flex items-center gap-2">
           <input
             type="number" inputMode="numeric" placeholder="Min" defaultValue={min ?? ""}
-            onBlur={(e) => setParam({ min: e.target.value ? Number(e.target.value) : undefined })}
+            onBlur={(e) => apply({ min: e.target.value ? Number(e.target.value) : undefined })}
             className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
           />
           <span className="text-muted-foreground">–</span>
           <input
             type="number" inputMode="numeric" placeholder="Max" defaultValue={max ?? ""}
-            onBlur={(e) => setParam({ max: e.target.value ? Number(e.target.value) : undefined })}
+            onBlur={(e) => apply({ max: e.target.value ? Number(e.target.value) : undefined })}
             className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm focus:border-primary focus:outline-none"
           />
         </div>
@@ -87,7 +117,7 @@ export function SearchClient({
       <FilterGroup label="Rating">
         <div className="space-y-1.5">
           {RATINGS.map((r) => (
-            <Radio key={r} checked={minRating === r} onChange={() => setParam({ rating: minRating === r ? undefined : r })} label={`${r}★ & up`} />
+            <Radio key={r} checked={minRating === r} onChange={() => apply({ minRating: minRating === r ? undefined : r })} label={`${r}★ & up`} />
           ))}
         </div>
       </FilterGroup>
@@ -96,7 +126,7 @@ export function SearchClient({
         <input
           type="checkbox"
           checked={flashOnly}
-          onChange={(e) => setParam({ flash: e.target.checked ? "1" : undefined })}
+          onChange={(e) => apply({ flashOnly: e.target.checked })}
           className="size-4 accent-[var(--primary)]"
         />
         Flash sale only
@@ -108,11 +138,10 @@ export function SearchClient({
     <div className="mx-auto max-w-[1500px] px-4 py-6 md:px-8">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-serif text-2xl text-foreground">{query ? `Results for “${query}”` : "Explore"}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{total} {total === 1 ? "product" : "products"}</p>
+          <h1 className="font-serif text-2xl text-foreground">{filters.q ? `Results for “${filters.q}”` : "Explore"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{data.total} {data.total === 1 ? "product" : "products"}</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Mobile filter trigger */}
           <button
             onClick={() => setFiltersOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground lg:hidden"
@@ -124,7 +153,7 @@ export function SearchClient({
             <span className="hidden sm:inline">Sort</span>
             <select
               value={sort}
-              onChange={(e) => setParam({ sort: e.target.value })}
+              onChange={(e) => apply({ sort: e.target.value as SortKey })}
               className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground focus:border-primary focus:outline-none"
             >
               {SORTS.map((s) => (<option key={s.key} value={s.key}>{s.label}</option>))}
@@ -134,7 +163,6 @@ export function SearchClient({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[230px_1fr]">
-        {/* Desktop sidebar */}
         <aside className="hidden h-max rounded-xl border border-border bg-card p-5 lg:block">
           <div className="mb-4 flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-foreground">
@@ -149,28 +177,28 @@ export function SearchClient({
           {panel}
         </aside>
 
-        {/* Results */}
         <div>
-          {products.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card py-20 text-center">
-              <p className="font-serif text-lg text-foreground">No products found</p>
-              <p className="mt-1 text-sm text-muted-foreground">Try removing a filter or searching for something else.</p>
-            </div>
-          ) : (
-            <ProductGrid products={products} />
-          )}
+          <div className={loading ? "pointer-events-none opacity-50 transition-opacity" : "transition-opacity"}>
+            {data.products.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card py-20 text-center">
+                <p className="font-serif text-lg text-foreground">No products found</p>
+                <p className="mt-1 text-sm text-muted-foreground">Try removing a filter or searching for something else.</p>
+              </div>
+            ) : (
+              <ProductGrid products={data.products} />
+            )}
+          </div>
 
-          {totalPages > 1 && (
+          {data.totalPages > 1 && (
             <div className="mt-8 flex items-center justify-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setParam({ page: page - 1 })}>Previous</Button>
-              <span className="px-3 text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setParam({ page: page + 1 })}>Next</Button>
+              <Button variant="outline" size="sm" disabled={data.page <= 1} onClick={() => { apply({ page: data.page - 1 }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Previous</Button>
+              <span className="px-3 text-sm text-muted-foreground">Page {data.page} of {data.totalPages}</span>
+              <Button variant="outline" size="sm" disabled={data.page >= data.totalPages} onClick={() => { apply({ page: data.page + 1 }); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Next</Button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
       <AnimatePresence>
         {filtersOpen && (
           <motion.div
@@ -193,7 +221,7 @@ export function SearchClient({
               {panel}
               <div className="mt-6 flex gap-2">
                 {activeCount > 0 && <Button variant="outline" className="flex-1" onClick={clearAll}>Clear all</Button>}
-                <Button className="flex-1" onClick={() => setFiltersOpen(false)}>Show {total} {total === 1 ? "result" : "results"}</Button>
+                <Button className="flex-1" onClick={() => setFiltersOpen(false)}>Show {data.total} {data.total === 1 ? "result" : "results"}</Button>
               </div>
             </motion.div>
           </motion.div>

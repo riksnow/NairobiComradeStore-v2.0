@@ -1,22 +1,36 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { getCategoriesWithCounts } from "@/lib/data";
-import { ImageWithFallback } from "@/components/primitives/image-with-fallback";
+import { CategoryCard } from "@/components/shared/category-card";
 
 export async function CategoryTiles() {
   const categories = await getCategoriesWithCounts();
+  if (!categories.length) return null;
+
   return (
-    <section className="mx-auto max-w-[1500px] px-4 py-10 md:px-8">
-      <h2 className="mb-5 font-serif text-xl text-foreground md:text-2xl">Shop by category</h2>
-      <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
-        {categories.map((c) => (
-          <Link key={c.slug} href={`/category/${c.slug}`} className="group">
-            <div className="relative aspect-square overflow-hidden rounded-md border border-border">
-              <ImageWithFallback src={c.image} alt={c.name} wrapperClassName="h-full w-full" className="transition-transform duration-700 group-hover:scale-105" />
-              <div aria-hidden className="absolute inset-0 bg-foreground/25" />
-            </div>
-            <p className="mt-2 text-center text-xs font-medium text-foreground md:text-sm">{c.name}</p>
-            <p className="text-center text-[0.65rem] text-muted-foreground">{c.count} items</p>
-          </Link>
+    <section className="mx-auto max-w-[1500px] px-4 py-12 md:px-8">
+      <div className="mb-6 flex items-end justify-between gap-3">
+        <div>
+          {/* <p className="eyebrow text-muted-foreground">Browse the store</p> */}
+          <h2 className="font-serif text-2xl text-foreground md:text-3xl">Collections</h2>
+        </div>
+        <Link href="/collections" className="inline-flex shrink-0 items-center gap-1 text-sm text-primary transition-colors hover:underline">
+          All categories <ArrowRight className="size-4" />
+        </Link>
+      </div>
+
+      {/* Uniform, equal-size tiles */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+        {categories.map((c, i) => (
+          <CategoryCard
+            key={c.slug}
+            slug={c.slug}
+            name={c.name}
+            count={c.count}
+            image={c.image}
+            index={i}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+          />
         ))}
       </div>
     </section>

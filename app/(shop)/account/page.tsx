@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Package, MapPin, Bell, Settings, ChevronRight } from "lucide-react";
-import { formatKsh, formatDate } from "@/lib/utils";
+import { formatKsh, formatDateTime } from "@/lib/utils";
 
 type Order = { _id: string; total: number; status: string; createdAt: string };
 
@@ -59,7 +59,7 @@ export default function AccountOverviewPage() {
               <li key={o._id}>
                 <Link href={`/account/orders/${o._id}`} className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3 hover:border-primary/40">
                   <span className="text-sm text-foreground">#{o._id.slice(-6).toUpperCase()}</span>
-                  <span className="text-sm text-muted-foreground">{formatDate(o.createdAt)}</span>
+                  <span className="text-sm text-muted-foreground">{formatDateTime(o.createdAt)}</span>
                   <span className="text-sm font-medium text-foreground">{formatKsh(o.total)}</span>
                   <ChevronRight className="size-4 text-muted-foreground" />
                 </Link>

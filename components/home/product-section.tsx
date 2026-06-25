@@ -18,7 +18,7 @@ export function ProductSection({
   return (
     <section className="mx-auto max-w-[1500px] px-4 py-8 md:px-8">
       <div className="mb-5 flex items-end justify-between">
-        <h2 className={`font-serif text-xl md:text-2xl ${accent ? "text-primary" : "text-foreground"}`}>{title}</h2>
+        <h2 className={`font-serif text-2xl text-foreground md:text-3xl ${accent ? "text-primary" : "text-foreground"}`}>{title}</h2>
         {href && (
           <Link href={href} className="group flex items-center gap-1 text-sm text-foreground/70 hover:text-primary">
             See all <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />

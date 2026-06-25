@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, HeartHandshake, Truck, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SocialLinks } from "@/components/shared/social-links";
+import { getSettings } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "About — NairobiComradeStore",
@@ -16,7 +18,8 @@ const VALUES = [
   { icon: ShieldCheck, title: "Pay your way", body: "M-Pesa or Cash on Delivery, secure checkout, and prices always in Ksh." },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const settings = await getSettings();
   return (
     <div className="mx-auto max-w-[1000px] px-4 py-14 md:px-8">
       <p className="eyebrow text-[0.65rem] text-primary">Our story</p>
@@ -55,7 +58,16 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <div className="mt-12 flex flex-wrap gap-3">
+      <div className="mt-12 flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="eyebrow text-[0.6rem] text-muted-foreground">Say hi</p>
+          <h2 className="mt-1 font-serif text-xl text-foreground">Follow & chat with us</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Reach us on WhatsApp or follow along on Instagram.</p>
+        </div>
+        <SocialLinks whatsapp={settings.whatsapp} instagram={settings.instagram} phone={settings.supportPhone} />
+      </div>
+
+      <div className="mt-8 flex flex-wrap gap-3">
         <Button asChild><Link href="/search">Start shopping</Link></Button>
         <Button asChild variant="outline"><Link href="/collections">Browse collections</Link></Button>
       </div>

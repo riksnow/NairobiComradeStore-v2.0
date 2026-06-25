@@ -8,7 +8,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
         <aside className="h-max lg:sticky lg:top-24">
           <AccountNav />
         </aside>
-        <div>{children}</div>
+        <div className="min-w-0">{children}</div>
       </div>
     </div>
   );

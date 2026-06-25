@@ -1,3 +1,4 @@
+import { TrackView } from "@/components/shared/track-view";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -42,6 +43,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </nav>
 
       <ProductDetailClient product={product} />
+      <TrackView type="view_product" slug={product.slug} name={product.name} />
 
       <div className="mt-14">
         <h2 className="mb-5 font-serif text-xl text-foreground md:text-2xl">Ratings &amp; reviews</h2>

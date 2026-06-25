@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Package } from "lucide-react";
-import { formatKsh, formatDate, cn } from "@/lib/utils";
+import { formatKsh, formatDateTime, cn } from "@/lib/utils";
 import { ImageWithFallback } from "@/components/primitives/image-with-fallback";
 
 type Order = {
-  _id: string; total: number; subtotal: number; deliveryFee: number; discount: number;
+  _id: string; total: number; subtotal: number; deliveryFee: number; discount: number; bagFee?: number; shopDiscount?: number;
   status: string; paymentMethod: string; isPaid: boolean; createdAt: string; couponCode?: string;
   cancellationReason?: string;
-  items: { name: string; qty: number; price: number; image: string; size?: string; color?: string }[];
+  items: { name: string; qty: number; price: number; image: string; size?: string; color?: string; variant?: string; shop?: string; shopName?: string }[];
   shippingAddress: { fullName: string; phone: string; street: string; area: string; city: string };
   statusHistory: { status: string; timestamp: string; note?: string }[];
 };
@@ -55,7 +55,7 @@ export default function OrderDetailPage() {
           {order.status}
         </span>
       </div>
-      <p className="mt-1 text-sm text-muted-foreground">Placed {formatDate(order.createdAt)} · {order.paymentMethod} · {order.isPaid ? "Paid" : "Payment pending"}</p>
+      <p className="mt-1 text-sm text-muted-foreground">Placed {formatDateTime(order.createdAt)} · {order.paymentMethod} · {order.isPaid ? "Paid" : "Payment pending"}</p>
 
       {!cancelled && (
         <div className="mt-6 flex items-center">
@@ -78,10 +78,11 @@ export default function OrderDetailPage() {
         <div className="divide-y divide-border rounded-xl border border-border">
           {order.items.map((it, i) => (
             <div key={i} className="flex gap-3 p-4">
-              <ImageWithFallback src={it.image} alt={it.name} wrapperClassName="size-16 shrink-0 rounded-md border border-border" />
+              <ImageWithFallback src={it.image} alt={it.name} wrapperClassName="size-16 shrink-0 rounded-md border border-border" sizes="80px" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-foreground">{it.name}</p>
-                <p className="text-xs text-muted-foreground">{[it.size, it.color].filter(Boolean).join(" · ")} · Qty {it.qty}</p>
+                <p className="text-xs text-muted-foreground">{[it.variant, it.size, it.color].filter(Boolean).join(" · ")} · Qty {it.qty}</p>
+                {it.shopName && <p className="mt-0.5 text-[0.7rem] text-primary">Sold by {it.shopName}</p>}
               </div>
               <span className="text-sm text-foreground">{formatKsh(it.price * it.qty)}</span>
             </div>
@@ -92,6 +93,8 @@ export default function OrderDetailPage() {
           <div className="rounded-xl border border-border bg-card p-4 text-sm">
             <Row label="Subtotal" value={formatKsh(order.subtotal)} />
             {order.discount > 0 && <Row label={`Discount${order.couponCode ? ` (${order.couponCode})` : ""}`} value={`− ${formatKsh(order.discount)}`} />}
+            {order.shopDiscount ? <Row label="Shop discounts" value={`− ${formatKsh(order.shopDiscount)}`} /> : null}
+            {order.bagFee ? <Row label="Shop bag fees" value={formatKsh(order.bagFee)} /> : null}
             <Row label="Delivery" value={formatKsh(order.deliveryFee)} />
             <div className="mt-2 flex justify-between border-t border-border pt-2 font-medium text-foreground">
               <span>Total</span><span>{formatKsh(order.total)}</span>

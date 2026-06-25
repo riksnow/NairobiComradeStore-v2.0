@@ -2,9 +2,21 @@ import { formatKsh, effectivePrice, discountPercent } from "@/lib/utils";
 import type { Product } from "@/lib/catalog";
 import { cn } from "@/lib/utils";
 
-export function Price({ product, className, size = "base" }: { product: Product; className?: string; size?: "sm" | "base" | "lg" }) {
-  const current = effectivePrice(product);
-  const pct = discountPercent(product);
+export function Price({
+  product,
+  className,
+  size = "base",
+  overridePrice,
+}: {
+  product: Product;
+  className?: string;
+  size?: "sm" | "base" | "lg";
+  /** When set (e.g. a selected variant), show this price instead of the product's. */
+  overridePrice?: number;
+}) {
+  const base = effectivePrice(product);
+  const current = overridePrice ?? base;
+  const pct = overridePrice === undefined ? discountPercent(product) : 0;
   const original = pct > 0 ? (product.flashSale ? product.price : product.listPrice) : undefined;
   const sizes = { sm: "text-sm", base: "text-base", lg: "text-2xl" } as const;
 

@@ -109,3 +109,18 @@ export type CouponType = (typeof COUPON_TYPES)[number];
 
 /** Public site origin — used for SEO (sitemap, canonical URLs, Open Graph). */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://nairobicomradestore.co.ke").replace(/\/$/, "");
+
+
+/** Categories that use clothing/shoe sizing — only these show the size guide. */
+export const SIZED_CATEGORIES = ["fashion", "shoes", "clothing", "apparel", "menswear", "womenswear", "kids"];
+
+/* ------------------------------------------------------------------ */
+/*  Super admin (protected account)                                    */
+/* ------------------------------------------------------------------ */
+
+/** This account's role/status can never be changed or deleted, even by admins. */
+export const SUPER_ADMIN_EMAIL = "admin@nairobicomradestore.co.ke";
+
+export function isSuperAdmin(email?: string | null): boolean {
+  return !!email && email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+}

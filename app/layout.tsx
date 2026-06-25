@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Hanken_Grotesk } from "next/font/google";
 import { Providers } from "@/components/providers/providers";
+import { AnalyticsTracker } from "@/components/shared/analytics-tracker";
 import { CookieConsent } from "@/components/shared/cookie-consent";
 import { SITE_URL } from "@/lib/constants";
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Providers>
           {children}
           <CookieConsent />
+          <AnalyticsTracker />
         </Providers>
       </body>
     </html>

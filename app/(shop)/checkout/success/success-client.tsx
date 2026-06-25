@@ -6,7 +6,7 @@ import Link from "next/link";
 import { CheckCircle2, Smartphone, Banknote, Package } from "lucide-react";
 import { useStore } from "@/store/store-context";
 import { Button } from "@/components/ui/button";
-import { formatKsh, formatDate } from "@/lib/utils";
+import { formatKsh, formatDateTime } from "@/lib/utils";
 
 type View = {
   id: string;
@@ -81,7 +81,7 @@ export function SuccessClient() {
         <h1 className="mt-5 font-serif text-3xl text-foreground">Order confirmed</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Thanks, {view.fullName.split(" ")[0]}! Your order{" "}
-          <span className="font-medium text-foreground">#{view.id.slice(-6).toUpperCase()}</span> was placed on {formatDate(view.date)}.
+          <span className="font-medium text-foreground">#{view.id.slice(-6).toUpperCase()}</span> was placed on {formatDateTime(view.date)}.
         </p>
       </div>
 

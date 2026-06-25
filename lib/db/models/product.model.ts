@@ -9,10 +9,13 @@ export interface IProduct {
   listPrice?: number;
   images: string[];
   category: string;
+  shop?: string;
   brand?: string;
   tags: string[];
   sizes: string[];
   colors: string[];
+  variantLabel?: string;
+  variants?: { label: string; price?: number }[];
   countInStock: number;
   numSales: number;
   avgRating: number;
@@ -35,10 +38,13 @@ const ProductSchema = new Schema<IProduct>(
     listPrice: { type: Number, min: 0 },
     images: { type: [String], default: [] },
     category: { type: String, required: true, index: true },
+    shop: { type: String, index: true },
     brand: { type: String, trim: true },
     tags: { type: [String], default: [] },
     sizes: { type: [String], default: [] },
     colors: { type: [String], default: [] },
+    variantLabel: { type: String },
+    variants: { type: [{ label: { type: String }, price: { type: Number } }], default: [] },
     countInStock: { type: Number, default: 0, min: 0 },
     numSales: { type: Number, default: 0 },
     avgRating: { type: Number, default: 0 },

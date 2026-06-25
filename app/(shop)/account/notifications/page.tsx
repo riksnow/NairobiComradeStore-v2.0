@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, Package, Megaphone, Info, Star, CheckCheck } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 
 type Notif = {
   _id: string; type: "order" | "promotion" | "system" | "review";
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
                     {!n.isRead && <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary" />}
                   </div>
                   <p className="mt-0.5 text-sm text-muted-foreground">{n.message}</p>
-                  <p className="mt-1.5 text-xs text-muted-foreground/80">{formatDate(n.createdAt)}</p>
+                  <p className="mt-1.5 text-xs text-muted-foreground/80">{formatDateTime(n.createdAt)}</p>
                 </div>
               </div>
             );

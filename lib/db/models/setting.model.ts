@@ -7,6 +7,8 @@ export interface ISetting {
   supportPhone?: string;
   supportEmail?: string;
   address?: string;
+  whatsapp?: string;
+  instagram?: string;
   emailConfig: {
     sendOrderEmails: boolean;
     sendNewsletter: boolean;
@@ -22,6 +24,8 @@ const SettingSchema = new Schema<ISetting>(
     supportPhone: { type: String },
     supportEmail: { type: String },
     address: { type: String },
+    whatsapp: { type: String },
+    instagram: { type: String },
     emailConfig: {
       sendOrderEmails: { type: Boolean, default: true },
       sendNewsletter: { type: Boolean, default: true },

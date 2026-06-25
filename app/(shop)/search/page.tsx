@@ -44,7 +44,15 @@ export default async function SearchPage({
         </div>
       }
     >
-      <SearchClient products={paged} total={total} page={current} totalPages={totalPages} query={q} cats={cats} />
+      <SearchClient
+        products={paged}
+        total={total}
+        page={current}
+        totalPages={totalPages}
+        query={q}
+        cats={cats}
+        initial={{ q, category, min, max, minRating, flashOnly, sort, page: current }}
+      />
     </Suspense>
   );
 }

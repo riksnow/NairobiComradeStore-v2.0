@@ -19,6 +19,8 @@ export async function getModels() {
     subscriberMod,
     settingMod,
     categoryMod,
+    shopMod,
+    eventMod,
   ] = await Promise.all([
     import("@/lib/db/models/user.model"),
     import("@/lib/db/models/product.model"),
@@ -30,6 +32,8 @@ export async function getModels() {
     import("@/lib/db/models/subscriber.model"),
     import("@/lib/db/models/setting.model"),
     import("@/lib/db/models/category.model"),
+    import("@/lib/db/models/shop.model"),
+    import("@/lib/db/models/event.model"),
   ]);
 
   return {
@@ -43,6 +47,8 @@ export async function getModels() {
     Subscriber: subscriberMod.default,
     Setting: settingMod.default,
     Category: categoryMod.default,
+    Shop: shopMod.default,
+    Event: eventMod.default,
     recalcProductRating: reviewMod.recalcProductRating,
   };
 }

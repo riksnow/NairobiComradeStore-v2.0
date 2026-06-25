@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { categories as staticCategories } from "@/lib/catalog";
 import { useCategories } from "@/lib/hooks/use-categories";
+import { useShops } from "@/lib/hooks/use-shops";
+import { ImageUploader } from "@/components/admin/image-uploader";
 import { formatKsh, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -13,19 +15,22 @@ import { useStore } from "@/store/store-context";
 type Product = {
   _id: string; name: string; category: string; brand?: string; description?: string;
   price: number; listPrice?: number; countInStock: number; images: string[];
-  sizes: string[]; colors: string[]; isPublished: boolean; isFeatured: boolean;
+  sizes: string[]; colors: string[]; shop?: string; isPublished: boolean; isFeatured: boolean;
   flashSale: boolean; flashSalePrice?: number;
+  variantLabel?: string; variants?: { label: string; price?: number }[];
 };
 
 const empty = {
-  name: "", category: staticCategories[0]?.slug ?? "", brand: "", description: "",
-  price: "", listPrice: "", countInStock: "", images: "", sizes: "", colors: "",
+  name: "", category: staticCategories[0]?.slug ?? "", shop: "", brand: "", description: "",
+  price: "", listPrice: "", countInStock: "", images: [] as string[], sizes: "", colors: "",
   isPublished: true, isFeatured: false, flashSale: false, flashSalePrice: "",
+  variantLabel: "", variants: "",
 };
 
 export default function AdminProductsPage() {
   const { notify } = useStore();
   const categories = useCategories();
+  const shops = useShops();
   const [items, setItems] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -51,10 +56,12 @@ export default function AdminProductsPage() {
   const openEdit = (p: Product) => {
     setEditId(p._id); setErr(null);
     setForm({
-      name: p.name, category: p.category, brand: p.brand ?? "", description: p.description ?? "",
+      name: p.name, category: p.category, shop: p.shop ?? "", brand: p.brand ?? "", description: p.description ?? "",
       price: String(p.price), listPrice: p.listPrice ? String(p.listPrice) : "",
-      countInStock: String(p.countInStock), images: p.images.join(", "), sizes: p.sizes.join(", "),
+      countInStock: String(p.countInStock), images: p.images, sizes: p.sizes.join(", "),
       colors: p.colors.join(", "), isPublished: p.isPublished, isFeatured: p.isFeatured,
+      variantLabel: p.variantLabel ?? "",
+      variants: (p.variants ?? []).map((v) => (typeof v.price === "number" ? `${v.label} = ${v.price}` : v.label)).join("\n"),
       flashSale: p.flashSale, flashSalePrice: p.flashSalePrice ? String(p.flashSalePrice) : "",
     });
     setOpen(true);
@@ -65,12 +72,21 @@ export default function AdminProductsPage() {
     if (!form.name || !form.price || !form.category) return setErr("Name, price and category are required.");
     setSaving(true);
     const list = (s: string) => s.split(",").map((x) => x.trim()).filter(Boolean);
+    const variants = form.variants
+      .split("\n").map((l) => l.trim()).filter(Boolean)
+      .map((line) => {
+        const [label, priceStr] = line.split("=").map((x) => x.trim());
+        const price = priceStr ? Number(priceStr) : undefined;
+        return price !== undefined && !Number.isNaN(price) ? { label, price } : { label };
+      })
+      .filter((v) => v.label);
     const payload = {
-      name: form.name, category: form.category, brand: form.brand || undefined, description: form.description,
+      name: form.name, category: form.category, shop: form.shop || undefined, brand: form.brand || undefined, description: form.description,
       price: Number(form.price), listPrice: form.listPrice ? Number(form.listPrice) : undefined,
-      countInStock: Number(form.countInStock || 0), images: list(form.images), sizes: list(form.sizes),
+      countInStock: Number(form.countInStock || 0), images: form.images, sizes: list(form.sizes),
       colors: list(form.colors), isPublished: form.isPublished, isFeatured: form.isFeatured,
       flashSale: form.flashSale, flashSalePrice: form.flashSalePrice ? Number(form.flashSalePrice) : undefined,
+      variantLabel: form.variantLabel || undefined, variants,
     };
     const res = await fetch(editId ? `/api/admin/products/${editId}` : "/api/admin/products", {
       method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
@@ -162,16 +178,39 @@ export default function AdminProductsPage() {
             </div>
             <Field label="Brand"><Input value={form.brand} onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))} /></Field>
           </div>
+          <div>
+            <label className="eyebrow mb-1.5 block text-[0.6rem] text-muted-foreground">Shop</label>
+            <select value={form.shop} onChange={(e) => setForm((f) => ({ ...f, shop: e.target.value }))} className="h-12 w-full rounded-md border border-border bg-card px-3 text-sm focus:border-primary focus:outline-none">
+              <option value="">— Select a shop —</option>
+              {shops.map((sh) => <option key={sh.slug} value={sh.slug}>{sh.name}</option>)}
+            </select>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <Field label="Price (Ksh)"><Input inputMode="numeric" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))} /></Field>
             <Field label="List price"><Input inputMode="numeric" value={form.listPrice} onChange={(e) => setForm((f) => ({ ...f, listPrice: e.target.value }))} /></Field>
             <Field label="Stock"><Input inputMode="numeric" value={form.countInStock} onChange={(e) => setForm((f) => ({ ...f, countInStock: e.target.value }))} /></Field>
           </div>
           <Field label="Description"><Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} /></Field>
-          <Field label="Image URLs (comma-separated)"><Input value={form.images} onChange={(e) => setForm((f) => ({ ...f, images: e.target.value }))} /></Field>
+          <ImageUploader value={form.images} onChange={(imgs) => setForm((f) => ({ ...f, images: imgs }))} />
           <div className="grid grid-cols-2 gap-3">
             <Field label="Sizes (comma)"><Input value={form.sizes} onChange={(e) => setForm((f) => ({ ...f, sizes: e.target.value }))} /></Field>
             <Field label="Colors (comma)"><Input value={form.colors} onChange={(e) => setForm((f) => ({ ...f, colors: e.target.value }))} /></Field>
+          </div>
+          <div className="rounded-lg border border-border bg-secondary/30 p-3">
+            <p className="text-xs font-medium text-foreground">Variants with their own price <span className="font-normal text-muted-foreground">(e.g. power bank capacity)</span></p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-[180px_1fr]">
+              <Field label="Variant label"><Input value={form.variantLabel} onChange={(e) => setForm((f) => ({ ...f, variantLabel: e.target.value }))} placeholder="Capacity" /></Field>
+              <Field label="Options — one per line: Label = Price">
+                <textarea
+                  value={form.variants}
+                  onChange={(e) => setForm((f) => ({ ...f, variants: e.target.value }))}
+                  rows={3}
+                  placeholder={"10000mAh = 1999\n20000mAh = 2999"}
+                  className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none"
+                />
+              </Field>
+            </div>
+            <p className="mt-1 text-[0.7rem] text-muted-foreground">Leave the price off a line to use the base price. The price updates on the product page when a customer picks an option.</p>
           </div>
           <div className="flex flex-wrap gap-4 pt-1 text-sm">
             <Check label="Published" checked={form.isPublished} onChange={(v) => setForm((f) => ({ ...f, isPublished: v }))} />

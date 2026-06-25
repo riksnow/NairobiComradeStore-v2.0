@@ -73,8 +73,8 @@ export function CartSheet() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-sm text-foreground">{l.product.name}</p>
-                      {(l.size || l.color) && (
-                        <p className="text-[0.7rem] text-muted-foreground">{[l.color, l.size].filter(Boolean).join(" · ")}</p>
+                      {(l.size || l.color || l.variant) && (
+                        <p className="text-[0.7rem] text-muted-foreground">{[l.variant, l.color, l.size].filter(Boolean).join(" · ")}</p>
                       )}
                     </div>
                     <button onClick={() => removeLine(l.key)} aria-label="Remove" className="text-muted-foreground hover:text-foreground">

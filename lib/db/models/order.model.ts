@@ -9,6 +9,9 @@ export interface IOrderItem {
   qty: number;
   size?: string;
   color?: string;
+  variant?: string;
+  shop?: string;
+  shopName?: string;
 }
 
 export interface IStatusHistory {
@@ -41,6 +44,8 @@ export interface IOrder {
   subtotal: number;
   deliveryFee: number;
   discount: number;
+  bagFee?: number;
+  shopDiscount?: number;
   couponCode?: string;
   total: number;
   isPaid: boolean;
@@ -71,6 +76,9 @@ const OrderItemSchema = new Schema<IOrderItem>(
     qty: { type: Number, required: true, min: 1 },
     size: { type: String },
     color: { type: String },
+    variant: { type: String },
+    shop: { type: String },
+    shopName: { type: String },
   },
   { _id: false }
 );
@@ -108,6 +116,8 @@ const OrderSchema = new Schema<IOrder>(
     subtotal: { type: Number, required: true },
     deliveryFee: { type: Number, default: 0 },
     discount: { type: Number, default: 0 },
+    bagFee: { type: Number, default: 0 },
+    shopDiscount: { type: Number, default: 0 },
     couponCode: { type: String },
     total: { type: Number, required: true },
     isPaid: { type: Boolean, default: false },
